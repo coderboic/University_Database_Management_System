@@ -119,27 +119,19 @@ WHERE m.marks_obtained > 80;
 
 -- 10. Common Table Expressions (CTE)
 -- Calculate department-wise statistics using CTE
-WITH DeptStats AS (
-    SELECT 
-        d.department_id,
-        d.department_name,
-        COUNT(s.student_id) as student_count,
-        AVG(m.marks_obtained) as avg_marks
-    FROM DEPARTMENT d
-    LEFT JOIN STUDENT s ON d.department_id = s.department_id
-    LEFT JOIN MARKS m ON s.student_id = m.student_id
-    GROUP BY d.department_id, d.department_name
-)
 SELECT 
     d.department_name,
-    d.student_count,
-    d.avg_marks,
+    COUNT(s.student_id) as student_count,
+    AVG(m.marks_obtained) as avg_marks,
     CASE
-        WHEN d.avg_marks > 85 THEN 'Excellent'
-        WHEN d.avg_marks > 75 THEN 'Good'
+        WHEN AVG(m.marks_obtained) > 85 THEN 'Excellent'
+        WHEN AVG(m.marks_obtained) > 75 THEN 'Good'
         ELSE 'Average'
     END as performance
-FROM DeptStats d;
+FROM DEPARTMENT d
+LEFT JOIN STUDENT s ON d.department_id = s.department_id
+LEFT JOIN MARKS m ON s.student_id = m.student_id
+GROUP BY d.department_name;
 
 -- 11. Window Functions
 -- Rank students by marks within departments
@@ -149,67 +141,74 @@ SELECT
     s.student_id,
     s.name,
     m.marks_obtained,
-    RANK() OVER (PARTITION BY s.department_id ORDER BY m.marks_obtained DESC) as dept_rank
+    (SELECT COUNT(DISTINCT m2.marks_obtained) + 1
+     FROM STUDENT s2 
+     JOIN MARKS m2 ON s2.student_id = m2.student_id
+     WHERE s2.department_id = s.department_id 
+     AND m2.marks_obtained > m.marks_obtained) as dept_rank
 FROM STUDENT s
 JOIN DEPARTMENT d ON s.department_id = d.department_id
-JOIN MARKS m ON s.student_id = m.student_id;
+JOIN MARKS m ON s.student_id = m.student_id
+ORDER BY s.department_id, m.marks_obtained DESC;
 
 -- Calculate running attendance percentage
 SELECT 
     s.student_id,
     s.name,
-    a.date_of_attendance,
-    a.status,
-    SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) OVER (
-        PARTITION BY s.student_id 
-        ORDER BY a.date_of_attendance
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) as present_count,
-    COUNT(a.attendance_id) OVER (
-        PARTITION BY s.student_id 
-        ORDER BY a.date_of_attendance
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) as total_days,
+    a1.date_of_attendance,
+    a1.status,
+    -- Calculate present count up to current date
+    (SELECT COUNT(*) 
+     FROM ATTENDANCE a2 
+     WHERE a2.student_id = s.student_id 
+     AND a2.status = 'Present'
+     AND a2.date_of_attendance <= a1.date_of_attendance) as present_count,
+    -- Calculate total days up to current date
+    (SELECT COUNT(*) 
+     FROM ATTENDANCE a2 
+     WHERE a2.student_id = s.student_id 
+     AND a2.date_of_attendance <= a1.date_of_attendance) as total_days,
+    -- Calculate attendance percentage
     ROUND(
-        100 * SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) OVER (
-            PARTITION BY s.student_id 
-            ORDER BY a.date_of_attendance
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) / 
-        COUNT(a.attendance_id) OVER (
-            PARTITION BY s.student_id 
-            ORDER BY a.date_of_attendance
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ), 2
+        (SELECT COUNT(*) * 100.0
+         FROM ATTENDANCE a2 
+         WHERE a2.student_id = s.student_id 
+         AND a2.status = 'Present'
+         AND a2.date_of_attendance <= a1.date_of_attendance) /
+        NULLIF((SELECT COUNT(*) 
+         FROM ATTENDANCE a2 
+         WHERE a2.student_id = s.student_id 
+         AND a2.date_of_attendance <= a1.date_of_attendance), 0),
+        2
     ) as attendance_percentage
 FROM STUDENT s
-JOIN ATTENDANCE a ON s.student_id = a.student_id
-ORDER BY s.student_id, a.date_of_attendance;
+JOIN ATTENDANCE a1 ON s.student_id = a1.student_id
+ORDER BY s.student_id, a1.date_of_attendance;
 
 -- 12. Hierarchical Queries 
 -- Example of a hierarchical query (assuming staff hierarchy)
 -- For demonstration, we'll create a dummy hierarchy by adding some manager IDs to staff
 -- This is for illustration only and not part of actual schema
 
-WITH StaffHierarchy AS (
-    SELECT 
-        staff_id, 
-        staff_name, 
-        CASE 
-            WHEN staff_id > 2 THEN MOD(staff_id - 1, 2) + 1
-            ELSE NULL
-        END as manager_id
-    FROM STAFF
-)
+-- Simple hierarchical query using joins
 SELECT 
-    staff_id,
-    staff_name,
-    manager_id,
-    LEVEL as hierarchy_level,
-    LPAD(' ', 2 * (LEVEL - 1)) || staff_name as org_chart
-FROM StaffHierarchy
-START WITH manager_id IS NULL
-CONNECT BY PRIOR staff_id = manager_id;
+    s1.staff_id,
+    s1.staff_name,
+    s1.manager_id,
+    1 as top_level
+FROM STAFF s1
+WHERE s1.staff_id <= 2
+
+UNION ALL
+
+SELECT 
+    s2.staff_id,
+    CONCAT('  ', s2.staff_name),
+    s2.manager_id,
+    2 as second_level
+FROM STAFF s2
+WHERE s2.staff_id > 2 AND MOD(s2.staff_id - 1, 2) + 1 <= 2
+ORDER BY top_level, staff_id;
 
 -- 13. CASE expressions
 -- Categorize students by performance
@@ -240,14 +239,27 @@ GROUP BY s.student_id, s.name;
 
 -- 15. Analytical functions
 -- Calculate percentile ranks of students based on marks
+-- Calculate student rankings using basic SQL
 SELECT 
     s.student_id,
     s.name,
     m.marks_obtained,
-    PERCENT_RANK() OVER (ORDER BY m.marks_obtained) as percentile_rank,
-    NTILE(4) OVER (ORDER BY m.marks_obtained) as quartile
+    -- Calculate percentile using basic math
+    ROUND(
+        (SELECT COUNT(*) * 100.0
+         FROM MARKS m2
+         WHERE m2.marks_obtained < m.marks_obtained) /
+        (SELECT COUNT(*) FROM MARKS),
+        2
+    ) as percentile,
+    -- Calculate quartile using simple CASE and counts
+    (SELECT COUNT(*) 
+     FROM MARKS m2
+     WHERE m2.marks_obtained <= m.marks_obtained) * 4 / 
+    (SELECT COUNT(*) FROM MARKS) as quartile_group
 FROM STUDENT s
-JOIN MARKS m ON s.student_id = m.student_id;
+JOIN MARKS m ON s.student_id = m.student_id
+ORDER BY m.marks_obtained DESC;
 
 -- 16. Complex nested queries
 -- Find students who have higher marks than the average of their department
@@ -294,6 +306,7 @@ SELECT * FROM STUDENT_PERFORMANCE;
 
 -- 18. Generating Reports
 -- Generate a comprehensive student report
+-- Generate comprehensive student report using basic SQL
 SELECT 
     s.student_id,
     s.name,
@@ -301,22 +314,61 @@ SELECT
     s.phone,
     d.department_name,
     c.college_name,
-    (SELECT COUNT(*) FROM ATTENDANCE a WHERE a.student_id = s.student_id AND a.status = 'Present') as attendance_present,
-    (SELECT COUNT(*) FROM ATTENDANCE a WHERE a.student_id = s.student_id) as total_attendance,
-    ROUND((SELECT COUNT(*) FROM ATTENDANCE a WHERE a.student_id = s.student_id AND a.status = 'Present') / 
-          NULLIF((SELECT COUNT(*) FROM ATTENDANCE a WHERE a.student_id = s.student_id), 0) * 100, 2) as attendance_percentage,
-    (SELECT AVG(m.marks_obtained) FROM MARKS m WHERE m.student_id = s.student_id) as avg_marks,
-    (SELECT f.amount FROM FEES f WHERE f.student_id = s.student_id AND ROWNUM = 1) as fees_amount,
-    (SELECT f.due_date FROM FEES f WHERE f.student_id = s.student_id AND ROWNUM = 1) as fees_due_date,
-    CASE 
-        WHEN EXISTS (SELECT 1 FROM UG_STUDENT ug WHERE ug.student_id = s.student_id) THEN 'Undergraduate'
-        WHEN EXISTS (SELECT 1 FROM PG_STUDENT pg WHERE pg.student_id = s.student_id) THEN 'Postgraduate'
-        ELSE 'Unknown'
-    END as student_type,
-    (SELECT COUNT(*) FROM LIBRARY_RECORDS lr WHERE lr.student_id = s.student_id) as library_books_borrowed
+    -- Attendance counts
+    (SELECT COUNT(*) 
+     FROM ATTENDANCE a 
+     WHERE a.student_id = s.student_id 
+     AND a.status = 'Present') as attendance_present,
+    (SELECT COUNT(*) 
+     FROM ATTENDANCE a 
+     WHERE a.student_id = s.student_id) as total_attendance,
+    -- Attendance percentage
+    ROUND(
+        (SELECT COUNT(*) * 100.0 
+         FROM ATTENDANCE a 
+         WHERE a.student_id = s.student_id 
+         AND a.status = 'Present') /
+        (SELECT NULLIF(COUNT(*), 0) 
+         FROM ATTENDANCE a 
+         WHERE a.student_id = s.student_id),
+        2
+    ) as attendance_percentage,
+    -- Academic details
+    (SELECT AVG(m.marks_obtained) 
+     FROM MARKS m 
+     WHERE m.student_id = s.student_id) as avg_marks,
+    -- Fee details
+    (SELECT MIN(f.amount) 
+     FROM FEES f 
+     WHERE f.student_id = s.student_id) as fees_amount,
+    (SELECT MIN(f.due_date) 
+     FROM FEES f 
+     WHERE f.student_id = s.student_id) as fees_due_date,
+    -- Student type (UG/PG)
+    (SELECT 'Undergraduate' 
+     FROM UG_STUDENT ug 
+     WHERE ug.student_id = s.student_id 
+     UNION 
+     SELECT 'Postgraduate' 
+     FROM PG_STUDENT pg 
+     WHERE pg.student_id = s.student_id 
+     UNION 
+     SELECT 'Unknown' 
+     FROM DUAL 
+     WHERE NOT EXISTS (
+         SELECT 1 FROM UG_STUDENT ug WHERE ug.student_id = s.student_id
+         UNION
+         SELECT 1 FROM PG_STUDENT pg WHERE pg.student_id = s.student_id
+     )
+     FETCH FIRST 1 ROW ONLY) as student_type,
+    -- Library records
+    (SELECT COUNT(*) 
+     FROM LIBRARY_RECORDS lr 
+     WHERE lr.student_id = s.student_id) as library_books_borrowed
 FROM STUDENT s
 JOIN DEPARTMENT d ON s.department_id = d.department_id
-JOIN COLLEGE c ON s.college_id = c.college_id;
+JOIN COLLEGE c ON s.college_id = c.college_id
+ORDER BY s.student_id;
 
 -- 19. Finding anomalies and inconsistencies
 -- Find students with attendance but no exam records
@@ -359,6 +411,7 @@ SELECT
     TO_DATE('2025-04-01', 'YYYY-MM-DD') + (LEVEL - 1) as report_date
 FROM DUAL
 CONNECT BY LEVEL <= 30; -- For 30 days starting from April 1, 2025
+
 
 -- 22. Materialized View for performance (conceptual, may not execute in LiveSQL)
 CREATE MATERIALIZED VIEW MV_STUDENT_SUMMARY
