@@ -251,28 +251,6 @@ WHERE m.marks_obtained > (
     WHERE s2.department_id = s.department_id
 );
 
--- 17. Views for data abstraction
--- Create a view for student performance summary
-CREATE OR REPLACE VIEW STUDENT_PERFORMANCE AS
-SELECT 
-    s.student_id,
-    s.name,
-    d.department_name,
-    c.college_name,
-    AVG(m.marks_obtained) as avg_marks,
-    COUNT(DISTINCT e.exam_id) as exams_taken,
-    MAX(m.marks_obtained) as highest_mark,
-    MIN(m.marks_obtained) as lowest_mark
-FROM STUDENT s
-JOIN DEPARTMENT d ON s.department_id = d.department_id
-JOIN COLLEGE c ON s.college_id = c.college_id
-LEFT JOIN EXAM e ON s.student_id = e.student_id
-LEFT JOIN MARKS m ON e.exam_id = m.exam_id
-GROUP BY s.student_id, s.name, d.department_name, c.college_name;
-
--- Query the view
-SELECT * FROM STUDENT_PERFORMANCE;
-
 -- 18. Generating Reports
 -- Generate a comprehensive student report
 -- Generate comprehensive student report using basic SQL
