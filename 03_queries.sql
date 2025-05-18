@@ -331,22 +331,4 @@ AND NOT EXISTS (SELECT 1 FROM EXAM e WHERE e.student_id = s.student_id);
 SELECT 
     TO_DATE('2025-04-01', 'YYYY-MM-DD') + (LEVEL - 1) as report_date
 FROM DUAL
-CONNECT BY LEVEL <= 30; -- For 30 days starting from April 1, 2025
-
-
--- 22. Materialized View for performance (conceptual, may not execute in LiveSQL)
-CREATE MATERIALIZED VIEW MV_STUDENT_SUMMARY
-BUILD IMMEDIATE
-REFRESH COMPLETE ON DEMAND
-AS
-SELECT 
-    s.student_id,
-    s.name,
-    d.department_name,
-    c.college_name,
-    AVG(m.marks_obtained) as avg_marks
-FROM STUDENT s
-JOIN DEPARTMENT d ON s.department_id = d.department_id
-JOIN COLLEGE c ON s.college_id = c.college_id
-LEFT JOIN MARKS m ON s.student_id = m.student_id
-GROUP BY s.student_id, s.name, d.department_name, c.college_name;
+CONNECT BY LEVEL <= 30; -- For 30 days starting from April 1, 20254
