@@ -213,7 +213,7 @@ LEFT JOIN ATTENDANCE a ON s.student_id = a.student_id
 GROUP BY s.student_id, s.name;
 
 -- 15. Analytical functions
--- Calculate percentile ranks of students based on marks
+-- Calculate percentile of students based on marks
 SELECT 
     s.student_id,
     s.name,
