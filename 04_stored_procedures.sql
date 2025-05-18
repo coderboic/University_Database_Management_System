@@ -359,3 +359,295 @@ BEGIN
 END;
 /
 */
+
+CREATE OR REPLACE PROCEDURE process_failed_students
+IS
+    -- Cursor to find students with marks below 40
+    CURSOR failed_students_cur IS
+        SELECT s.student_id, s.name, s.department_id, 
+               d.department_name, m.marks_obtained
+        FROM STUDENT s
+        JOIN MARKS m ON s.student_id = m.student_id
+        JOIN DEPARTMENT d ON s.department_id = d.department_id
+        WHERE m.marks_obtained < 40;
+        
+    v_student_rec failed_students_cur%ROWTYPE;
+BEGIN
+    OPEN failed_students_cur;
+    
+    DBMS_OUTPUT.PUT_LINE('=== Failed Students Report ===');
+    
+    LOOP
+        FETCH failed_students_cur INTO v_student_rec;
+        EXIT WHEN failed_students_cur%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE(
+            'Student: ' || v_student_rec.name ||
+            ' (ID: ' || v_student_rec.student_id || ')' ||
+            ' Department: ' || v_student_rec.department_name ||
+            ' Marks: ' || v_student_rec.marks_obtained
+        );
+        
+        -- Send notification (simulated)
+        DBMS_OUTPUT.PUT_LINE('Notification sent to student: ' || v_student_rec.student_id);
+    END LOOP;
+    
+    CLOSE failed_students_cur;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE monitor_low_attendance
+IS
+    -- Cursor for students with attendance below 75%
+    CURSOR low_attendance_cur IS
+        SELECT s.student_id, s.name, 
+               COUNT(CASE WHEN a.status = 'Present' THEN 1 END) * 100.0 / COUNT(*) as attendance_percent
+        FROM STUDENT s
+        JOIN ATTENDANCE a ON s.student_id = a.student_id
+        GROUP BY s.student_id, s.name
+        HAVING COUNT(CASE WHEN a.status = 'Present' THEN 1 END) * 100.0 / COUNT(*) < 75;
+        
+    v_student_rec low_attendance_cur%ROWTYPE;
+BEGIN
+    OPEN low_attendance_cur;
+    
+    DBMS_OUTPUT.PUT_LINE('=== Low Attendance Report ===');
+    
+    LOOP
+        FETCH low_attendance_cur INTO v_student_rec;
+        EXIT WHEN low_attendance_cur%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE(
+            'Student: ' || v_student_rec.name ||
+            ' (ID: ' || v_student_rec.student_id || ')' ||
+            ' Attendance: ' || ROUND(v_student_rec.attendance_percent, 2) || '%'
+        );
+    END LOOP;
+    
+    CLOSE low_attendance_cur;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE review_department_performance
+IS
+    -- Cursor for department-wise performance
+    CURSOR dept_performance_cur IS
+        SELECT d.department_id, d.department_name,
+               COUNT(s.student_id) as total_students,
+               AVG(m.marks_obtained) as avg_marks,
+               MIN(m.marks_obtained) as min_marks,
+               MAX(m.marks_obtained) as max_marks
+        FROM DEPARTMENT d
+        LEFT JOIN STUDENT s ON d.department_id = s.department_id
+        LEFT JOIN MARKS m ON s.student_id = m.student_id
+        GROUP BY d.department_id, d.department_name;
+        
+    v_dept_rec dept_performance_cur%ROWTYPE;
+BEGIN
+    OPEN dept_performance_cur;
+    
+    DBMS_OUTPUT.PUT_LINE('=== Department Performance Review ===');
+    
+    LOOP
+        FETCH dept_performance_cur INTO v_dept_rec;
+        EXIT WHEN dept_performance_cur%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE(
+            'Department: ' || v_dept_rec.department_name ||
+            ' | Avg Marks: ' || ROUND(v_dept_rec.avg_marks, 2) ||
+            ' | Students: ' || v_dept_rec.total_students ||
+            ' | Range: ' || v_dept_rec.min_marks || '-' || v_dept_rec.max_marks
+        );
+    END LOOP;
+    
+    CLOSE dept_performance_cur;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE track_fee_defaulters
+IS
+    -- Cursor for students with pending fees
+    CURSOR fee_defaulters_cur IS
+        SELECT s.student_id, s.name, s.department_id,
+               f.amount, f.due_date,
+               ROUND(SYSDATE - f.due_date) as days_overdue
+        FROM STUDENT s
+        JOIN FEES f ON s.student_id = f.student_id
+        WHERE f.due_date < SYSDATE
+        ORDER BY f.due_date;
+        
+    v_defaulter_rec fee_defaulters_cur%ROWTYPE;
+BEGIN
+    OPEN fee_defaulters_cur;
+    
+    DBMS_OUTPUT.PUT_LINE('=== Fee Defaulters Report ===');
+    
+    LOOP
+        FETCH fee_defaulters_cur INTO v_defaulter_rec;
+        EXIT WHEN fee_defaulters_cur%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE(
+            'Student: ' || v_defaulter_rec.name ||
+            ' | Due Amount: ' || v_defaulter_rec.amount ||
+            ' | Days Overdue: ' || v_defaulter_rec.days_overdue
+        );
+    END LOOP;
+    
+    CLOSE fee_defaulters_cur;
+END;
+/
+
+-- 9. Procedure to analyze student performance trends
+CREATE OR REPLACE PROCEDURE analyze_student_performance(
+    p_student_id IN NUMBER
+)
+IS
+    -- Cursor for exam performance over time
+    CURSOR performance_cur IS
+        SELECT 
+            e1.exam_date,
+            e1.subject,
+            m1.marks_obtained,
+            -- Get previous marks using subquery
+            (SELECT m2.marks_obtained 
+             FROM EXAM e2
+             JOIN MARKS m2 ON e2.exam_id = m2.exam_id
+             WHERE m2.student_id = p_student_id 
+             AND e2.exam_date < e1.exam_date
+             ORDER BY e2.exam_date DESC
+             FETCH FIRST 1 ROW ONLY) as previous_marks,
+            a.status as attendance_status
+        FROM EXAM e1
+        JOIN MARKS m1 ON e1.exam_id = m1.exam_id
+        LEFT JOIN ATTENDANCE a ON e1.exam_date = a.date_of_attendance 
+            AND a.student_id = p_student_id
+        WHERE m1.student_id = p_student_id
+        ORDER BY e1.exam_date;
+
+    -- Variables for cursor and analysis
+    v_performance_rec performance_cur%ROWTYPE;
+    v_student_name VARCHAR2(100);
+    v_total_exams NUMBER := 0;
+    v_improving_count NUMBER := 0;
+    v_declining_count NUMBER := 0;
+    v_absent_count NUMBER := 0;
+    v_highest_mark NUMBER := 0;
+    v_lowest_mark NUMBER := 100;
+BEGIN
+    -- Get student name
+    SELECT name INTO v_student_name
+    FROM STUDENT
+    WHERE student_id = p_student_id;
+
+    DBMS_OUTPUT.PUT_LINE('=== Performance Analysis for ' || v_student_name || ' ===');
+    DBMS_OUTPUT.PUT_LINE('Exam Performance Timeline:');
+    DBMS_OUTPUT.PUT_LINE('----------------------------------------');
+
+    -- Process each exam result
+    OPEN performance_cur;
+    LOOP
+        FETCH performance_cur INTO v_performance_rec;
+        EXIT WHEN performance_cur%NOTFOUND;
+
+        -- Count statistics
+        v_total_exams := v_total_exams + 1;
+        
+        IF v_performance_rec.attendance_status = 'Absent' THEN
+            v_absent_count := v_absent_count + 1;
+        END IF;
+
+        IF v_performance_rec.previous_marks IS NOT NULL THEN
+            IF v_performance_rec.marks_obtained > v_performance_rec.previous_marks THEN
+                v_improving_count := v_improving_count + 1;
+            ELSIF v_performance_rec.marks_obtained < v_performance_rec.previous_marks THEN
+                v_declining_count := v_declining_count + 1;
+            END IF;
+        END IF;
+
+        -- Track highest and lowest marks
+        v_highest_mark := GREATEST(v_highest_mark, v_performance_rec.marks_obtained);
+        v_lowest_mark := LEAST(v_lowest_mark, v_performance_rec.marks_obtained);
+
+        -- Print exam details
+        DBMS_OUTPUT.PUT_LINE(
+            'Date: ' || TO_CHAR(v_performance_rec.exam_date, 'DD-MON-YYYY') ||
+            ' | Subject: ' || RPAD(v_performance_rec.subject, 15) ||
+            ' | Marks: ' || LPAD(v_performance_rec.marks_obtained, 3) ||
+            ' | Attendance: ' || NVL(v_performance_rec.attendance_status, 'N/A') ||
+            CASE 
+                WHEN v_performance_rec.previous_marks IS NOT NULL THEN
+                    CASE 
+                        WHEN v_performance_rec.marks_obtained > v_performance_rec.previous_marks THEN
+                            ' ↑'
+                        WHEN v_performance_rec.marks_obtained < v_performance_rec.previous_marks THEN
+                            ' ↓'
+                        ELSE
+                            ' →'
+                    END
+                ELSE ''
+            END
+        );
+    END LOOP;
+    CLOSE performance_cur;
+
+    -- Print summary
+    DBMS_OUTPUT.PUT_LINE('----------------------------------------');
+    DBMS_OUTPUT.PUT_LINE('Performance Summary:');
+    DBMS_OUTPUT.PUT_LINE('Total Exams: ' || v_total_exams);
+    DBMS_OUTPUT.PUT_LINE('Highest Mark: ' || v_highest_mark);
+    DBMS_OUTPUT.PUT_LINE('Lowest Mark: ' || v_lowest_mark);
+    DBMS_OUTPUT.PUT_LINE('Improving Trend Count: ' || v_improving_count);
+    DBMS_OUTPUT.PUT_LINE('Declining Trend Count: ' || v_declining_count);
+    DBMS_OUTPUT.PUT_LINE('Absences: ' || v_absent_count);
+    
+    -- Calculate and display performance indicator
+    DBMS_OUTPUT.PUT_LINE('Performance Indicator: ' || 
+        CASE 
+            WHEN v_improving_count > v_declining_count THEN 'Improving ↑'
+            WHEN v_improving_count < v_declining_count THEN 'Declining ↓'
+            ELSE 'Stable →'
+        END
+    );
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Student not found or no exam data available');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error analyzing performance: ' || SQLERRM);
+END analyze_student_performance;
+/
+
+-- Add to the example section:
+/*
+-- ...existing examples...
+
+-- 1. Process Failed Students Report
+BEGIN
+    process_failed_students;
+END;
+/
+
+-- 2. Check Low Attendance Students
+BEGIN
+    monitor_low_attendance;
+END;
+/
+
+-- 3. Review Department Performance
+BEGIN
+    review_department_performance;
+END;
+/
+
+-- 4. Check Fee Defaulters
+BEGIN
+    track_fee_defaulters;
+END;
+/
+
+-- 5. Analyze Individual Student Performance
+BEGIN
+    analyze_student_performance(1);  -- Replace 1 with the student_id you want to analyze
+END;
+/
+*/
+
