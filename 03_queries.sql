@@ -326,32 +326,6 @@ FROM STUDENT s
 WHERE EXISTS (SELECT 1 FROM ATTENDANCE a WHERE a.student_id = s.student_id)
 AND NOT EXISTS (SELECT 1 FROM EXAM e WHERE e.student_id = s.student_id);
 
--- 20. Data cleansing and quality check
--- Identify missing values or inconsistent data
-SELECT 
-    'Students with no department' as issue_type,
-    COUNT(*) as count
-FROM STUDENT
-WHERE department_id IS NULL
-UNION ALL
-SELECT 
-    'Students with no email',
-    COUNT(*)
-FROM STUDENT
-WHERE email IS NULL
-UNION ALL
-SELECT 
-    'Departments with no students',
-    COUNT(*)
-FROM DEPARTMENT d
-WHERE NOT EXISTS (SELECT 1 FROM STUDENT s WHERE s.department_id = d.department_id)
-UNION ALL
-SELECT 
-    'Students with no attendance records',
-    COUNT(*)
-FROM STUDENT s
-WHERE NOT EXISTS (SELECT 1 FROM ATTENDANCE a WHERE a.student_id = s.student_id);
-
 -- 21. Recursive Query using Connect By
 -- Generate a date range for attendance reporting
 SELECT 
