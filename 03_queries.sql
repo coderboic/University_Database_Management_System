@@ -326,9 +326,3 @@ FROM STUDENT s
 WHERE EXISTS (SELECT 1 FROM ATTENDANCE a WHERE a.student_id = s.student_id)
 AND NOT EXISTS (SELECT 1 FROM EXAM e WHERE e.student_id = s.student_id);
 
--- 21. Recursive Query using Connect By
--- Generate a date range for attendance reporting
-SELECT 
-    TO_DATE('2025-04-01', 'YYYY-MM-DD') + (LEVEL - 1) as report_date
-FROM DUAL
-CONNECT BY LEVEL <= 30; -- For 30 days starting from April 1, 20254
