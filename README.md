@@ -23,14 +23,19 @@ The database schema follows normalization principles (up to 3NF) and includes th
 - `04_stored_procedures.sql`: PL/SQL stored procedures and functions
 - `05_triggers.sql`: Database triggers for data integrity and business rules
 - `06_analytics_reports.sql`: Advanced analytical queries and reports
+- `07_normalization_report.sql`: Detailed analysis of normalization principles (1NF, 2NF, 3NF, BCNF) applied in the database
+- `07b_normalization_examples.sql`: Practical examples and queries demonstrating normalization principles
 
 ## Featured SQL Concepts
 
 ### 1. Normalization
-The database schema follows normalization principles up to Third Normal Form (3NF):
+The database schema follows normalization principles up to Boyce-Codd Normal Form (BCNF):
 - 1NF: All tables have primary keys and atomic values
 - 2NF: No partial dependencies on primary keys
 - 3NF: No transitive dependencies
+- BCNF: Every determinant is a candidate key
+
+See detailed analysis in `07_normalization_report.sql`.
 
 ### 2. Relationships
 Various types of relationships are implemented:
@@ -95,6 +100,10 @@ Various types of relationships are implemented:
 
 6. **Run Analytics Reports**
    - Execute queries from `06_analytics_reports.sql` to generate insights
+
+7. **Review Normalization**
+   - Review `07_normalization_report.sql` to understand how normalization principles are applied in the database design
+   - Execute queries in `07b_normalization_examples.sql` to see practical demonstrations of normalization principles
 
 ### Important Notes
 - Some features (like materialized views) might not work in Oracle LiveSQL

@@ -185,31 +185,6 @@ FROM STUDENT s
 JOIN ATTENDANCE a1 ON s.student_id = a1.student_id
 ORDER BY s.student_id, a1.date_of_attendance;
 
--- 12. Hierarchical Queries 
--- Example of a hierarchical query (assuming staff hierarchy)
--- For demonstration, we'll create a dummy hierarchy by adding some manager IDs to staff
--- This is for illustration only and not part of actual schema
-
--- Simple hierarchical query using joins
-SELECT 
-    s1.staff_id,
-    s1.staff_name,
-    s1.manager_id,
-    1 as top_level
-FROM STAFF s1
-WHERE s1.staff_id <= 2
-
-UNION ALL
-
-SELECT 
-    s2.staff_id,
-    CONCAT('  ', s2.staff_name),
-    s2.manager_id,
-    2 as second_level
-FROM STAFF s2
-WHERE s2.staff_id > 2 AND MOD(s2.staff_id - 1, 2) + 1 <= 2
-ORDER BY top_level, staff_id;
-
 -- 13. CASE expressions
 -- Categorize students by performance
 SELECT 
