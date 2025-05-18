@@ -214,7 +214,6 @@ GROUP BY s.student_id, s.name;
 
 -- 15. Analytical functions
 -- Calculate percentile ranks of students based on marks
--- Calculate student rankings using basic SQL
 SELECT 
     s.student_id,
     s.name,
@@ -227,11 +226,6 @@ SELECT
         (SELECT COUNT(*) FROM MARKS),
         2
     ) as percentile,
-    -- Calculate quartile using simple CASE and counts
-    (SELECT COUNT(*) 
-     FROM MARKS m2
-     WHERE m2.marks_obtained <= m.marks_obtained) * 4 / 
-    (SELECT COUNT(*) FROM MARKS) as quartile_group
 FROM STUDENT s
 JOIN MARKS m ON s.student_id = m.student_id
 ORDER BY m.marks_obtained DESC;
