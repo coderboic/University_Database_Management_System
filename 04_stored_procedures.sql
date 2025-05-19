@@ -321,45 +321,6 @@ EXCEPTION
 END get_dept_stats;
 /
 
--- Example of calling these procedures and functions
-/*
--- Register a new student
-DECLARE
-    v_student_id NUMBER;
-BEGIN
-    register_student(
-        'John Doe', 'Male', 1, 'john.doe@email.com', '9876543220', 
-        'New Address', 1, 1, 'UG', v_student_id
-    );
-    DBMS_OUTPUT.PUT_LINE('New Student ID: ' || v_student_id);
-END;
-/
-
--- Calculate GPA
-DECLARE
-    v_gpa NUMBER;
-BEGIN
-    v_gpa := calculate_student_gpa(1);
-    DBMS_OUTPUT.PUT_LINE('Student GPA: ' || v_gpa);
-END;
-/
-
--- Generate student report
-BEGIN
-    generate_student_report(1);
-END;
-/
-
--- Get department statistics
-DECLARE
-    v_stats VARCHAR2(1000);
-BEGIN
-    v_stats := get_dept_stats(1);
-    DBMS_OUTPUT.PUT_LINE(v_stats);
-END;
-/
-*/
-
 CREATE OR REPLACE PROCEDURE process_failed_students
 IS
     -- Cursor to find students with marks below 40
