@@ -23,15 +23,7 @@ The database schema follows normalization principles (up to 3NF) and includes th
   - `03_queries.sql`: Basic to intermediate SQL queries demonstrating various concepts
   - `04_stored_procedures.sql`: PL/SQL stored procedures and functions
   - `05_triggers.sql`: Database triggers for data integrity and business rules
-  - `06_analytics_reports.sql`: Advanced analytical queries and reports
-  - `07_normalization_report.sql`: Detailed analysis of normalization principles (1NF, 2NF, 3NF, BCNF) applied in the database
-  - `07b_normalization_examples.sql`: Practical examples and queries demonstrating normalization principles
 
-- **Frontend Application**
-  - Located in the `../frontend` directory
-  - Provides web-based interface for interacting with the database
-  - Implements all functionalities from the stored procedures
-  - See the README.md file in the frontend directory for details
 
 ## Featured SQL Concepts
 
@@ -72,61 +64,11 @@ Triggers are implemented for:
 - Business rule enforcement
 - Audit trails
 
-### 6. Advanced Analytics
-The system demonstrates advanced analytical capabilities:
-- Performance trends and metrics
-- Department comparisons
-- Attendance and academic correlation analysis
-- Fee payment patterns
-
-## Frontend Application
-
-The frontend application provides a user-friendly interface to interact with the database. It includes:
-
-1. **Dashboard**
-   - Overview of key metrics
-   - Quick insights into student, department, and fee statistics
-   - Visual representations of department performance
-
-2. **Student Management**
-   - Registration of new students
-   - Student profiles and reports
-   - Performance analysis
-   - Department transfer functionality
-
-3. **Attendance Management**
-   - Recording of daily attendance
-   - Low attendance monitoring and alerts
-   - Attendance reports and statistics
-
-4. **Exam Management**
-   - Exam marks entry
-   - Failed students reports
-   - Performance analysis
-
-5. **Department Management**
-   - Department statistics and metrics
-   - Performance visualization
-   - Staff and student allocation
-
-6. **Fee Management**
-   - Fee defaulter tracking
-   - Payment status monitoring
-
 ## Setup and Usage
 
 ### Database Setup
 1. Use an Oracle LiveSQL environment or Oracle Database installation
 2. Run the scripts in numerical order (01_schema.sql first, then 02_sample_data.sql, etc.)
-
-### Frontend Setup
-1. Navigate to the `../frontend` directory
-2. Open the `index.html` file in a web browser for the standalone demo
-3. For full functionality with a real backend, see the README in the frontend directory
-- Common Table Expressions (WITH clause)
-- Analytical functions (RANK, DENSE_RANK, LAG, LEAD)
-- Pivoting data using CASE expressions
-- Hierarchical queries (CONNECT BY)
 
 ### 4. PL/SQL Concepts
 - Stored Procedures
@@ -141,12 +83,6 @@ The frontend application provides a user-friendly interface to interact with the
 - BEFORE and AFTER triggers
 - Data validation and business rules enforcement
 
-### 6. Advanced Analytics
-- Performance dashboards
-- Student progress tracking
-- Correlation analysis
-- Comparative analysis reports
-- Trend analysis
 
 ## Execution Instructions
 
@@ -171,13 +107,6 @@ The frontend application provides a user-friendly interface to interact with the
 5. **Create Triggers**
    - Execute the code in `05_triggers.sql` to create database triggers
    - Test by inserting or updating data to see trigger actions
-
-6. **Run Analytics Reports**
-   - Execute queries from `06_analytics_reports.sql` to generate insights
-
-7. **Review Normalization**
-   - Review `07_normalization_report.sql` to understand how normalization principles are applied in the database design
-   - Execute queries in `07b_normalization_examples.sql` to see practical demonstrations of normalization principles
 
 ### Important Notes
 - Some features (like materialized views) might not work in Oracle LiveSQL
