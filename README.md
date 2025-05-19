@@ -70,14 +70,14 @@ Triggers are implemented for:
 1. Use an Oracle LiveSQL environment or Oracle Database installation
 2. Run the scripts in numerical order (01_schema.sql first, then 02_sample_data.sql, etc.)
 
-### 4. PL/SQL Concepts
+###  PL/SQL Concepts
 - Stored Procedures
 - Functions
 - Exception Handling
 - Transaction Management
 - Cursors (implicit and explicit)
 
-### 5. Database Triggers
+### Database Triggers
 - Row-level triggers
 - Statement-level triggers
 - BEFORE and AFTER triggers
