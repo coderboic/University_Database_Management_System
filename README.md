@@ -1,7 +1,7 @@
 # University Database Management System
 
 ## Project Overview
-This project implements a comprehensive University Database Management System based on the Entity-Relationship diagram provided. The database is designed for Oracle LiveSQL and demonstrates various SQL concepts including normalization, queries, subqueries, joins, triggers, stored procedures, and advanced analytics. A frontend application has also been developed to interact with the database.
+This project implements a comprehensive University Database Management System based on the Entity-Relationship diagram provided. The database is designed for Oracle LiveSQL and demonstrates various SQL concepts including normalization, queries, subqueries, joins, triggers and stored procedures.
 
 ## Database Schema
 The database schema follows normalization principles (up to 3NF) and includes the following main entities:
